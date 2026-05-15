@@ -250,8 +250,10 @@ footer{padding:1.5rem 2rem;text-align:center;font-size:.66rem;color:var(--t4);
         <th onclick="sc(this,9)">NMV Atrib.</th>
         <th onclick="sc(this,10)">Optins</th>
         <th onclick="sc(this,11)">&Oacute;rdenes</th>
-        <th onclick="sc(this,12)">Inicio</th>
-        <th onclick="sc(this,13)">Vence</th>
+        <th onclick="sc(this,12)">Items</th>
+        <th onclick="sc(this,13)">Dominios</th>
+        <th onclick="sc(this,14)">Inicio</th>
+        <th onclick="sc(this,15)">Vence</th>
       </tr></thead>
       <tbody id="tbody">
         <tr><td colspan="14" style="text-align:center;padding:3rem;color:var(--t4)">
@@ -276,6 +278,8 @@ footer{padding:1.5rem 2rem;text-align:center;font-size:.66rem;color:var(--t4);
           <th style="background:var(--s2);padding:.5rem 1rem;text-align:left;font-size:.58rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--t4);border-bottom:1px solid var(--brd);">Estado</th>
           <th style="background:var(--s2);padding:.5rem 1rem;text-align:left;font-size:.58rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--t4);border-bottom:1px solid var(--brd);">Descuento</th>
           <th style="background:var(--s2);padding:.5rem 1rem;text-align:left;font-size:.58rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--t4);border-bottom:1px solid var(--brd);">Budget</th>
+          <th style="background:var(--s2);padding:.5rem 1rem;text-align:left;font-size:.58rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--t4);border-bottom:1px solid var(--brd);">Items</th>
+          <th style="background:var(--s2);padding:.5rem 1rem;text-align:left;font-size:.58rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--t4);border-bottom:1px solid var(--brd);">Dominios</th>
           <th style="background:var(--s2);padding:.5rem 1rem;text-align:left;font-size:.58rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--t4);border-bottom:1px solid var(--brd);">Inicio</th>
           <th style="background:var(--s2);padding:.5rem 1rem;text-align:left;font-size:.58rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--t4);border-bottom:1px solid var(--brd);">Vence</th>
         </tr></thead>
@@ -297,7 +301,7 @@ footer{padding:1.5rem 2rem;text-align:center;font-size:.66rem;color:var(--t4);
 
 <script>
 // ── state ──────────────────────────────────────────────────────────────────────
-var S = { curSt:'all', curSi:'all', sortC:4, sortD:-1, countdown:300 };
+var S = { curSt:'all', curSi:'all', sortC:4, sortD:-1, countdown:900 };
 
 // ── formatters ─────────────────────────────────────────────────────────────────
 function num(v){ var x=parseFloat(v); return isNaN(x)?null:x; }
@@ -467,6 +471,8 @@ function renderTable(rows){
       '<td><span style="font-size:.78rem;color:var(--t3)">'+dash(fusd(r.nmv_att))+'</span></td>'+
       '<td><span style="font-size:.78rem;color:var(--t2)">'+dash(fnum(r.optins))+'</span></td>'+
       '<td><span style="font-size:.78rem;color:var(--t3)">'+dash(fnum(r.orders))+'</span></td>'+
+      '<td><span style="font-size:.75rem;color:var(--t2);font-weight:600">'+(r.qty_items?Number(r.qty_items).toLocaleString('es'):'&mdash;')+'</span></td>'+
+      '<td style="max-width:220px;white-space:normal"><span style="font-size:.68rem;color:var(--t3);line-height:1.4">'+(r.domains||'&mdash;')+'</span></td>'+
       '<td><span style="font-size:.72rem;color:var(--t4)">'+(r.start_date||'').substring(0,10)+'</span></td>'+
       '<td>'+daysHtml(r.end_date)+'</td>'+
     '</tr>';
@@ -484,6 +490,8 @@ function renderTable(rows){
         '<td style="padding:.5rem 1rem;border-bottom:1px solid #0c0c0c">'+sbadge(r.status)+'</td>'+
         '<td style="padding:.5rem 1rem;border-bottom:1px solid #0c0c0c;font-size:.75rem;color:var(--t3)">'+ds+'</td>'+
         '<td style="padding:.5rem 1rem;border-bottom:1px solid #0c0c0c;font-size:.75rem;color:var(--t4)">'+dash(fnum(r.budget_lc))+'</td>'+
+        '<td style="padding:.5rem 1rem;border-bottom:1px solid #0c0c0c;font-size:.72rem;color:var(--t3)">'+(r.qty_items?Number(r.qty_items).toLocaleString('es'):'&mdash;')+'</td>'+
+        '<td style="padding:.5rem 1rem;border-bottom:1px solid #0c0c0c;font-size:.68rem;color:var(--t4);max-width:200px;white-space:normal">'+(r.domains||'&mdash;')+'</td>'+
         '<td style="padding:.5rem 1rem;border-bottom:1px solid #0c0c0c;font-size:.72rem;color:var(--t4)">'+(r.start_date||'').substring(0,10)+'</td>'+
         '<td style="padding:.5rem 1rem;border-bottom:1px solid #0c0c0c">'+daysHtml(r.end_date)+'</td>'+
       '</tr>';
@@ -625,7 +633,7 @@ function doRefresh(){
 // ── countdown ──────────────────────────────────────────────────────────────────
 function tick(){
   S.countdown--;
-  if(S.countdown<=0){ doRefresh(); return; }
+  if(S.countdown<=0){ S.countdown=900; doRefresh(); return; }
   var m=Math.floor(S.countdown/60), s=S.countdown%60;
   document.getElementById('ncd').textContent='Refresh en '+m+':'+(s<10?'0':'')+s;
   setTimeout(tick,1000);

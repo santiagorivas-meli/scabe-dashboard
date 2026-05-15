@@ -8,6 +8,11 @@ SELECT
   ROUND(c.MTC_MIN_PAYMENT_AMOUNT, 0)                                               AS min_amount,
   FORMAT_DATETIME('%Y-%m-%d', c.MTC_START_DATE)                                    AS start_date,
   FORMAT_DATETIME('%Y-%m-%d', c.MTC_END_DATE)                                      AS end_date,
+  -- Items & domains
+  i.qty_items,
+  i.domains,
+  i.verticals,
+  -- Performance from coupon prediction
   ROUND(SUM(p.NMV_INCREMENTAL_USD), 0)                                             AS nmv_inc,
   ROUND(SUM(p.NMV_ATRIBUIDO_USD), 0)                                               AS nmv_att,
   ROUND(SUM(p.NMV_GENERADO_USD), 0)                                                AS nmv_gen,
@@ -20,10 +25,19 @@ SELECT
   ROUND(SAFE_DIVIDE(SUM(p.VC_INCREMENTAL_USD),  SUM(p.NMV_INCREMENTAL_USD)), 3)   AS efficiency,
   ROUND(SAFE_DIVIDE(SUM(p.NMV_GENERADO_USD),    SUM(p.NMV_ATRIBUIDO_USD)), 3)     AS gen_att_ratio
 FROM `meli-bi-data.WHOWNER.BT_MKT_TOOLS_CAMPAIGN` c
+LEFT JOIN (
+  SELECT
+    CAST(CAMPAIGN_ID AS STRING)                                                    AS CAMPAIGN_ID,
+    COUNT(DISTINCT ITE_ITEM_ID)                                                    AS qty_items,
+    STRING_AGG(DISTINCT DOM_DOMAIN_AGG1 ORDER BY DOM_DOMAIN_AGG1 LIMIT 5)         AS domains,
+    STRING_AGG(DISTINCT VERTICAL        ORDER BY VERTICAL        LIMIT 3)         AS verticals
+  FROM `meli-bi-data.WHOWNER.LK_MKP_BENEFITS_CAMPAIGNS_ITEMS`
+  GROUP BY 1
+) i ON CAST(c.CAMPAIGN_ID AS STRING) = i.CAMPAIGN_ID
 LEFT JOIN `meli-bi-data.WHOWNER.BT_MKP_BENEFITS_CAMPAIGNS_PERFORMANCE_COUPON_PREDICTION` p
   ON CAST(c.CAMPAIGN_ID AS STRING) = p.CAMPAIGN_ID
   AND p.PHOTO_DATE >= DATE_SUB(CURRENT_DATE(), INTERVAL 60 DAY)
 WHERE c.MKT_CMG_ORIGIN = 'SCABE'
-GROUP BY 1,2,3,4,5,6,7,8,9
+GROUP BY 1,2,3,4,5,6,7,8,9,10,11,12
 ORDER BY nmv_inc DESC NULLS LAST
 LIMIT 300
