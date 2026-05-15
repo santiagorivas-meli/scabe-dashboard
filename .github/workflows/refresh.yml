@@ -1,0 +1,59 @@
+name: Refresh SCABE Data
+
+on:
+  schedule:
+    - cron: '0,30 * * * *'   # every 30 minutes
+  workflow_dispatch:           # manual trigger from GitHub UI
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+
+      - uses: google-github-actions/setup-gcloud@v2
+
+      - name: Run BQ query
+        run: |
+          bq query \
+            --use_legacy_sql=false \
+            --format=json \
+            --max_rows=300 \
+            "$(cat query.sql)" \
+          > data_tmp.json 2>/dev/null
+
+      - name: Build data.js
+        run: |
+          python3 - <<'EOF'
+          import json
+          from datetime import datetime
+
+          with open('data_tmp.json') as f:
+              raw = f.read()
+
+          start = raw.find('[')
+          end   = raw.rfind(']') + 1
+          data  = json.loads(raw[start:end])
+          ts    = datetime.utcnow().strftime('%d/%m/%Y %H:%M UTC')
+
+          js = 'window.SCABE_DATA = ' + json.dumps({'rows': data, 'updated_at': ts}) + ';'
+          with open('data.js', 'w') as f:
+              f.write(js)
+
+          print(f'data.js: {len(data)} rows')
+          EOF
+
+      - name: Commit & push
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data.js
+          git diff --staged --quiet || git commit -m "data: refresh $(date -u '+%Y-%m-%d %H:%M UTC')"
+          git push

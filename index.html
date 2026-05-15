@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>SCABE Dashboard</title>
+<script src="data.js"></script>
+<style>
+:root{
+  --y:#ffe600;--b:#3483fa;--g:#00a650;--o:#ff7733;--r:#f23d4f;--p:#a855f7;
+  --bg:#060606;--s1:#0d0d0d;--s2:#131313;--s3:#191919;--s4:#222;
+  --brd:#1f1f1f;--brd2:#2a2a2a;
+  --txt:#f0f0f0;--t2:#aaa;--t3:#666;--t4:#3a3a3a;
+  --radius:10px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+body{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--txt);font-size:14px;line-height:1.5;}
+
+/* ── NAV ── */
+nav{
+  position:sticky;top:0;z-index:100;
+  background:rgba(6,6,6,.94);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px);
+  border-bottom:1px solid var(--brd);height:54px;
+  display:flex;align-items:center;padding:0 2rem;gap:2rem;
+}
+.logo{display:flex;align-items:center;gap:.6rem;}
+.logo-icon{font-size:1rem;}
+.logo-text{font-weight:900;font-size:.85rem;color:var(--txt);letter-spacing:-.01em;}
+.logo-badge{font-size:.62rem;font-weight:700;background:#ffe60018;color:var(--y);
+  border:1px solid #ffe60025;border-radius:5px;padding:1px 6px;letter-spacing:.04em;}
+.nav-sep{width:1px;height:20px;background:var(--brd2);}
+.nav-status{display:flex;align-items:center;gap:.5rem;font-size:.72rem;color:var(--t3);}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--g);flex-shrink:0;}
+.dot.loading{background:var(--o);animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);border-radius:50%;}}
+.dot.live{animation:livepulse 2.5s ease infinite;}
+@keyframes livepulse{0%,100%{opacity:1;box-shadow:0 0 0 0 #00a65055}60%{opacity:.7;box-shadow:0 0 0 6px transparent}}
+.nav-right{margin-left:auto;display:flex;align-items:center;gap:1rem;}
+.nav-ts{font-size:.7rem;color:var(--t3);}
+.nav-cd{font-size:.7rem;color:var(--t4);font-variant-numeric:tabular-nums;min-width:90px;text-align:right;}
+.btn{
+  background:var(--s2);border:1px solid var(--brd2);border-radius:7px;
+  padding:5px 14px;font-size:.72rem;color:var(--t2);cursor:pointer;
+  transition:background .15s,color .15s,border-color .15s;
+  display:flex;align-items:center;gap:.4rem;
+}
+.btn:hover{background:var(--s3);border-color:var(--brd2);color:var(--txt);}
+.btn.loading{opacity:.6;pointer-events:none;}
+
+/* ── LAYOUT ── */
+.wrap{max-width:1480px;margin:0 auto;padding:0 2rem;}
+.section{padding:2rem 0 .5rem;}
+hr{border:none;border-top:1px solid var(--brd);}
+
+/* ── KPI GRID ── */
+.kpi-main{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--brd);
+  border:1px solid var(--brd);border-radius:14px;overflow:hidden;margin:1.5rem 0 1px;}
+.kpi-sub{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;background:var(--brd);
+  border:1px solid var(--brd);border-radius:0 0 14px 14px;overflow:hidden;margin:0 0 1rem;}
+.kpi-main + .kpi-sub{margin-top:1px;}
+.kpi{background:var(--s1);padding:1.4rem 1.6rem;position:relative;transition:background .15s;}
+.kpi:hover{background:var(--s2);}
+.kpi.big .kv{font-size:2.1rem;font-weight:900;letter-spacing:-.03em;line-height:1;}
+.kpi.small .kv{font-size:1.4rem;font-weight:800;letter-spacing:-.02em;line-height:1;}
+.kpi .kl{font-size:.62rem;color:var(--t3);margin-top:.3rem;text-transform:uppercase;letter-spacing:.06em;}
+.kpi .ks{font-size:.7rem;color:var(--t3);margin-top:.2rem;}
+.kpi .kd{font-size:.7rem;margin-top:.25rem;}
+.kpi-dot{position:absolute;top:1.2rem;right:1.2rem;width:6px;height:6px;border-radius:50%;}
+
+/* ── CHARTS ── */
+.charts{display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin:1rem 0;}
+.chart-card{background:var(--s1);border:1px solid var(--brd);border-radius:var(--radius);}
+.chart-head{padding:1.2rem 1.4rem .3rem;display:flex;align-items:flex-start;justify-content:space-between;}
+.chart-head h3{font-size:.85rem;font-weight:700;letter-spacing:-.01em;}
+.chart-head .sub{font-size:.68rem;color:var(--t3);margin-top:.15rem;}
+.chart-body{padding:.8rem 1.4rem 1.4rem;}
+.bar-row{display:flex;align-items:center;gap:.9rem;padding:.3rem 0;}
+.bar-label{font-size:.7rem;color:var(--t2);width:175px;flex-shrink:0;text-align:right;
+  line-height:1.3;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.bar-site{font-size:.6rem;color:var(--t4);}
+.bar-track{flex:1;background:var(--s3);border-radius:4px;height:20px;position:relative;overflow:hidden;}
+.bar-fill{height:20px;border-radius:4px;opacity:.88;transition:width .4s ease;}
+.bar-val{position:absolute;right:7px;top:50%;transform:translateY(-50%);
+  font-size:.7rem;font-weight:800;color:var(--txt);}
+
+/* ── FILTERS ── */
+.filter-wrap{display:flex;gap:.5rem;flex-wrap:wrap;align-items:center;
+  padding:1rem 0 .7rem;}
+.fb{padding:4px 13px;border-radius:20px;font-size:.71rem;font-weight:700;cursor:pointer;
+  border:1px solid var(--brd);color:var(--t3);background:transparent;transition:all .15s;}
+.fb:hover{border-color:var(--brd2);color:var(--t2);}
+.fb.on{border-color:#ffe60040;color:var(--y);background:#ffe60008;}
+.fsep{width:1px;height:16px;background:var(--brd2);margin:0 .3rem;}
+.srch{
+  background:var(--s1);border:1px solid var(--brd);border-radius:7px;
+  padding:5px 12px 5px 32px;font-size:.78rem;color:var(--txt);outline:none;
+  width:200px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%23555' stroke-width='2'%3E%3Ccircle cx='11' cy='11' r='8'/%3E%3Cline x1='21' y1='21' x2='16.65' y2='16.65'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:10px center;transition:border-color .15s;
+}
+.srch:focus{border-color:var(--brd2);}
+.cnt{font-size:.7rem;color:var(--t4);margin-left:auto;}
+/* ── NO DATA SECTION ── */
+.no-data-section{margin-top:1rem;}
+.no-data-toggle{
+  display:flex;align-items:center;gap:.7rem;padding:.75rem 1rem;
+  background:var(--s1);border:1px solid var(--brd);border-radius:var(--radius);
+  cursor:pointer;transition:background .15s;user-select:none;
+}
+.no-data-toggle:hover{background:var(--s2);}
+.no-data-toggle .ndl{font-size:.78rem;font-weight:700;color:var(--t3);}
+.no-data-toggle .ndc{font-size:.7rem;color:var(--t4);margin-left:.3rem;}
+.nd-arrow{font-size:.75rem;color:var(--t4);margin-left:auto;transition:transform .2s;}
+.nd-arrow.open{transform:rotate(180deg);}
+.no-data-body{display:none;border:1px solid var(--brd);border-top:none;
+  border-radius:0 0 var(--radius) var(--radius);overflow:hidden;}
+.no-data-body.open{display:block;}
+
+/* ── TABLE ── */
+.tw{overflow-x:auto;border:1px solid var(--brd);border-radius:var(--radius);overflow-y:visible;}
+table{width:100%;border-collapse:collapse;font-size:.8rem;}
+thead{}
+th{
+  background:var(--s2);padding:.55rem 1rem;text-align:left;
+  font-size:.58rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--t3);border-bottom:1px solid var(--brd);white-space:nowrap;
+  cursor:pointer;user-select:none;transition:color .15s;
+}
+th:hover{color:var(--t2);}
+th.sd{color:var(--y);}th.sd::after{content:" ↓";}
+th.sa{color:var(--y);}th.sa::after{content:" ↑";}
+td{padding:.65rem 1rem;border-bottom:1px solid #0c0c0c;vertical-align:middle;white-space:nowrap;}
+tr:last-child td{border-bottom:none;}
+tr.cr{transition:background .1s;}
+tr.cr:hover td{background:#ffffff03;}
+tr.cr.perf-great td:first-child{border-left:2px solid var(--g);}
+tr.cr.perf-good  td:first-child{border-left:2px solid var(--y);}
+tr.cr.perf-marg  td:first-child{border-left:2px solid var(--o);}
+tr.cr.perf-bad   td:first-child{border-left:2px solid var(--r);}
+tr.hidden{display:none;}
+
+/* ── MISC ── */
+.badge{display:inline-flex;align-items:center;font-size:.58rem;font-weight:800;
+  padding:2px 7px;border-radius:5px;letter-spacing:.06em;text-transform:uppercase;}
+.pill{display:inline-flex;align-items:center;font-size:.65rem;font-weight:700;
+  padding:2px 8px;border-radius:12px;letter-spacing:.02em;}
+.asp-hi{color:#7db8ff;background:#3483fa12;border:1px solid #3483fa20;}
+.asp-lo{color:var(--t2);background:#ffffff08;border:1px solid var(--brd);}
+.no-data{color:var(--t4);font-size:.75rem;}
+footer{padding:1.5rem 2rem;text-align:center;font-size:.66rem;color:var(--t4);
+  border-top:1px solid var(--brd);margin-top:2rem;}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">
+    <span class="logo-icon">&#9889;</span>
+    <span class="logo-text">Smart Coupons</span>
+    <span class="logo-badge">SCABE</span>
+  </div>
+  <div class="nav-sep"></div>
+  <div class="nav-status">
+    <span class="dot live" id="ndot"></span>
+    <span id="nst">En vivo</span>
+  </div>
+  <div class="nav-right">
+    <span class="nav-ts" id="nts">&mdash;</span>
+    <span class="nav-cd" id="ncd"></span>
+    <button class="btn" id="rbtn" onclick="doRefresh()">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+      Actualizar
+    </button>
+  </div>
+</nav>
+
+<div class="wrap">
+
+<!-- KPIs -->
+<div class="section">
+  <div class="kpi-main" id="kpi-main">
+    <div class="kpi big"><div class="kv" style="color:var(--t4)">&#8212;</div><div class="kl">NMV Incremental</div></div>
+    <div class="kpi big"><div class="kv" style="color:var(--t4)">&#8212;</div><div class="kl">ROAS Global</div></div>
+    <div class="kpi big"><div class="kv" style="color:var(--t4)">&#8212;</div><div class="kl">Inversi&oacute;n Total</div></div>
+    <div class="kpi big"><div class="kv" style="color:var(--t4)">&#8212;</div><div class="kl">ROI Global</div></div>
+  </div>
+  <div class="kpi-sub" id="kpi-sub">
+    <div class="kpi small"><div class="kv" style="color:var(--t4)">&#8212;</div><div class="kl">Activas</div></div>
+    <div class="kpi small"><div class="kv" style="color:var(--t4)">&#8212;</div><div class="kl">Optins</div></div>
+    <div class="kpi small"><div class="kv" style="color:var(--t4)">&#8212;</div><div class="kl">&Oacute;rdenes</div></div>
+    <div class="kpi small"><div class="kv" style="color:var(--t4)">&#8212;</div><div class="kl">Campa&ntilde;as</div></div>
+  </div>
+</div>
+
+<hr/>
+
+<!-- CHARTS -->
+<div class="section">
+  <div class="charts">
+    <div class="chart-card">
+      <div class="chart-head">
+        <div>
+          <h3>Top 10 &mdash; ROAS</h3>
+          <div class="sub">NMV incremental / inversi&oacute;n &bull; campa&ntilde;as con datos</div>
+        </div>
+      </div>
+      <div class="chart-body" id="chart-roas"></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-head">
+        <div>
+          <h3>Top 10 &mdash; NMV Incremental</h3>
+          <div class="sub">USD adicional generado sobre el contraf&aacute;ctico &bull; 60 d&iacute;as</div>
+        </div>
+      </div>
+      <div class="chart-body" id="chart-nmv"></div>
+    </div>
+  </div>
+</div>
+
+<hr/>
+
+<!-- TABLE -->
+<div class="section">
+  <div class="filter-wrap">
+    <button class="fb on" onclick="fSt('all',this)">Todas</button>
+    <button class="fb" onclick="fSt('active',this)">Activas</button>
+    <button class="fb" onclick="fSt('inactive',this)">Inactivas</button>
+    <button class="fb" onclick="fSt('finished',this)">Finalizadas</button>
+    <div class="fsep"></div>
+    <span id="siteF"></span>
+    <div class="fsep"></div>
+    <input class="srch" id="srch" type="text" placeholder="Buscar nombre o Campaign ID..." oninput="doSearch(this.value)"/>
+    <span class="cnt" id="cnt"></span>
+  </div>
+
+  <!-- WITH DATA TABLE -->
+  <div class="tw">
+    <table id="tbl">
+      <thead><tr>
+        <th onclick="sc(this,0)">Campa&ntilde;a</th>
+        <th onclick="sc(this,1)">Estado</th>
+        <th onclick="sc(this,2)">Descuento</th>
+        <th onclick="sc(this,3)">Budget</th>
+        <th onclick="sc(this,4)">ROAS &#8595;</th>
+        <th onclick="sc(this,5)">NMV Inc.</th>
+        <th onclick="sc(this,6)">Invest. USD</th>
+        <th onclick="sc(this,7)">ROI</th>
+        <th onclick="sc(this,8)">VC Inc.</th>
+        <th onclick="sc(this,9)">NMV Atrib.</th>
+        <th onclick="sc(this,10)">Optins</th>
+        <th onclick="sc(this,11)">&Oacute;rdenes</th>
+        <th onclick="sc(this,12)">Inicio</th>
+        <th onclick="sc(this,13)">Vence</th>
+      </tr></thead>
+      <tbody id="tbody">
+        <tr><td colspan="14" style="text-align:center;padding:3rem;color:var(--t4)">
+          Cargando datos de BigQuery&hellip;
+        </td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- NO DATA SECTION -->
+  <div class="no-data-section" id="nd-section" style="display:none">
+    <div class="no-data-toggle" onclick="toggleNoData()">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      <span class="ndl">Sin datos de performance</span>
+      <span class="ndc" id="nd-count"></span>
+      <span class="nd-arrow" id="nd-arrow">&#9660;</span>
+    </div>
+    <div class="no-data-body" id="nd-body">
+      <table id="tbl-nd" style="width:100%;border-collapse:collapse;font-size:.78rem;">
+        <thead><tr>
+          <th style="background:var(--s2);padding:.5rem 1rem;text-align:left;font-size:.58rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--t4);border-bottom:1px solid var(--brd);white-space:nowrap;">Campa&ntilde;a</th>
+          <th style="background:var(--s2);padding:.5rem 1rem;text-align:left;font-size:.58rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--t4);border-bottom:1px solid var(--brd);">Estado</th>
+          <th style="background:var(--s2);padding:.5rem 1rem;text-align:left;font-size:.58rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--t4);border-bottom:1px solid var(--brd);">Descuento</th>
+          <th style="background:var(--s2);padding:.5rem 1rem;text-align:left;font-size:.58rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--t4);border-bottom:1px solid var(--brd);">Budget</th>
+          <th style="background:var(--s2);padding:.5rem 1rem;text-align:left;font-size:.58rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--t4);border-bottom:1px solid var(--brd);">Inicio</th>
+          <th style="background:var(--s2);padding:.5rem 1rem;text-align:left;font-size:.58rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--t4);border-bottom:1px solid var(--brd);">Vence</th>
+        </tr></thead>
+        <tbody id="tbody-nd"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+</div><!-- wrap -->
+
+<footer>
+  Smart Coupons SCABE &nbsp;&bull;&nbsp;
+  BT_MKT_TOOLS_CAMPAIGN &times; BT_MKP_BENEFITS_CAMPAIGNS_PERFORMANCE_COUPON_PREDICTION &nbsp;&bull;&nbsp;
+  ROAS = NMV Incremental / Inversi&oacute;n &nbsp;&bull;&nbsp;
+  ROI = VC Incremental / Inversi&oacute;n &nbsp;&bull;&nbsp;
+  Auto-refresh cada 5 min
+</footer>
+
+<script>
+// ── state ──────────────────────────────────────────────────────────────────────
+var S = { curSt:'all', curSi:'all', sortC:4, sortD:-1, countdown:300 };
+
+// ── formatters ─────────────────────────────────────────────────────────────────
+function num(v){ var x=parseFloat(v); return isNaN(x)?null:x; }
+function fusd(v){ var x=num(v); if(x==null) return null;
+  if(Math.abs(x)>=1e6) return '$'+(x/1e6).toFixed(1)+'M';
+  if(Math.abs(x)>=1e3) return '$'+(x/1e3).toFixed(0)+'K';
+  return '$'+x.toFixed(0); }
+function fnum(v){ var x=num(v); if(x==null) return null;
+  if(Math.abs(x)>=1e6) return (x/1e6).toFixed(1)+'M';
+  if(Math.abs(x)>=1e3) return (x/1e3).toFixed(0)+'K';
+  return Math.round(x).toString(); }
+function froas(v){ var x=num(v); return x==null?null:x.toFixed(1)+'x'; }
+function froi(v){  var x=num(v); return x==null?null:(x*100).toFixed(1)+'%'; }
+function dash(v){ return v==null?'<span class="no-data">&mdash;</span>':v; }
+
+// ── colors ─────────────────────────────────────────────────────────────────────
+function rcol(v){ var x=num(v);
+  if(x==null) return '#3a3a3a';
+  if(x>=15) return '#00a650'; if(x>=5) return '#7ecf7e';
+  if(x>=1)  return '#ffe600'; if(x>=0) return '#ff7733';
+  return '#f23d4f'; }
+function perfClass(r){ var x=num(r);
+  if(x==null) return '';
+  if(x>=10) return 'perf-great'; if(x>=3) return 'perf-good';
+  if(x>=0)  return 'perf-marg';  return 'perf-bad'; }
+function vcol(v,thresh){ return (num(v)||0)>=thresh?'var(--g)':'var(--r)'; }
+
+// ── campaign name parser ────────────────────────────────────────────────────────
+function parseName(nm){
+  var m=(nm||'').match(/csmart_(\w+)_(\w+)_(\w+)_(\w+)_(high|low|media)asp/);
+  if(!m) return null;
+  return {vertical:m[2],cat:m[3],sub:m[4],asp:m[5],site:m[1].toUpperCase()};
+}
+function dispName(r){
+  var p=parseName(r.MTC_NAME);
+  if(!p) return '<span style="color:var(--t2);font-size:.78rem">'+(r.MTC_NAME||'').substring(0,40)+'</span>';
+  var vert='<span style="font-size:.78rem;font-weight:700;color:var(--txt)">'+p.vertical.toUpperCase()+'</span>';
+  var sub='<span style="font-size:.75rem;color:var(--t2)"> &bull; '+p.sub+'</span>';
+  var asp=p.asp==='high'||p.asp==='media'
+    ?'<span class="pill asp-hi">'+p.asp+'</span>'
+    :'<span class="pill asp-lo">'+p.asp+'</span>';
+  return '<div style="display:flex;align-items:center;gap:.5rem;flex-wrap:wrap">'+vert+sub+'</div>'+
+    '<div style="margin-top:3px;display:flex;align-items:center;gap:.5rem">'+asp+
+    '<span style="font-size:.62rem;color:var(--t4)">'+r.site+' &nbsp;&#183;&nbsp; #'+r.CAMPAIGN_ID+'</span></div>';
+}
+
+// ── status badge ───────────────────────────────────────────────────────────────
+function sbadge(s){
+  var m={active:{c:'#00a650',bg:'rgba(0,166,80,.1)',l:'ACTIVA'},
+    inactive:{c:'#555',bg:'rgba(85,85,85,.1)',l:'INACTIVA'},
+    finished:{c:'#3483fa',bg:'rgba(52,131,250,.1)',l:'FINALIZADA'},
+    paused:{c:'#ff7733',bg:'rgba(255,119,51,.1)',l:'PAUSADA'}};
+  var d=m[(s||'').toLowerCase()]||{c:'#555',bg:'rgba(85,85,85,.1)',l:(s||'?').toUpperCase()};
+  return '<span class="badge" style="color:'+d.c+';background:'+d.bg+';border:1px solid '+d.c+'28">'+d.l+'</span>';
+}
+
+// ── days remaining ─────────────────────────────────────────────────────────────
+function daysLeft(e){
+  if(!e) return null;
+  var d=new Date(e),t=new Date(); t.setHours(0,0,0,0); d.setHours(0,0,0,0);
+  return Math.round((d-t)/86400000);
+}
+function daysHtml(e){
+  var d=daysLeft(e);
+  if(d==null) return dash(null);
+  if(d<0)  return '<span style="color:var(--t4);font-size:.72rem">Venci&oacute;</span>';
+  if(d===0) return '<span style="color:var(--r);font-weight:800;font-size:.75rem">Hoy</span>';
+  if(d<=2)  return '<span style="color:var(--r);font-weight:700;font-size:.75rem">'+d+'d</span>';
+  if(d<=5)  return '<span style="color:var(--o);font-weight:700;font-size:.75rem">'+d+'d</span>';
+  return '<span style="color:var(--t3);font-size:.75rem">'+d+'d</span>';
+}
+
+// ── render KPIs ────────────────────────────────────────────────────────────────
+function renderKPIs(rows){
+  var nmv=0,inv=0,vc=0,opt=0,ord=0,ac=0,ic=0,fc=0;
+  rows.forEach(function(r){
+    nmv+=num(r.nmv_inc)||0; inv+=num(r.invest_usd)||0;
+    vc+=num(r.vc_inc)||0;   opt+=num(r.optins)||0; ord+=num(r.orders)||0;
+    var s=(r.status||'').toLowerCase();
+    if(s==='active')ac++;else if(s==='inactive')ic++;else if(s==='finished')fc++;
+  });
+  var roas=inv?nmv/inv:0, roi=inv?vc/inv:0;
+  function big(v,l,c,s){
+    return '<div class="kpi big">'+
+      '<div class="kv" style="color:'+c+'">'+v+'</div>'+
+      '<div class="kl">'+l+'</div>'+
+      (s?'<div class="kd" style="color:var(--t4)">'+s+'</div>':'')+
+      '</div>';
+  }
+  function small(v,l,c,s){
+    return '<div class="kpi small">'+
+      '<div class="kv" style="color:'+c+'">'+v+'</div>'+
+      '<div class="kl">'+l+'</div>'+
+      (s?'<div class="ks" style="color:var(--t4)">'+s+'</div>':'')+
+      '</div>';
+  }
+  document.getElementById('kpi-main').innerHTML=
+    big(fusd(nmv)||'$0','NMV Incremental',nmv>=0?'var(--y)':'var(--r)','60 d&iacute;as &bull; coupon prediction')+
+    big(froas(roas)||'0x','ROAS Global',rcol(roas),'NMV Inc / Inversi&oacute;n')+
+    big(fusd(inv)||'$0','Inversi&oacute;n Total','var(--b)','60 d&iacute;as')+
+    big(froi(roi)||'0%','ROI Global',roi>=0?'var(--g)':'var(--r)','VC Inc / Inversi&oacute;n');
+  document.getElementById('kpi-sub').innerHTML=
+    small(ac,'Activas ahora','var(--g)',ic+' inact &bull; '+fc+' fin.')+
+    small(fnum(opt)||'0','Optins totales','var(--y)','60 d&iacute;as')+
+    small(fnum(ord)||'0','&Oacute;rdenes','var(--b)','con cup&oacute;n')+
+    small(rows.length,'Campa&ntilde;as SCABE','var(--t2)','ORIGIN = SCABE');
+}
+
+// ── render charts ──────────────────────────────────────────────────────────────
+function renderBar(id, items, vFn, fFn, cFn){
+  var vals=items.map(vFn), mx=Math.max.apply(null,vals.map(Math.abs))||1;
+  document.getElementById(id).innerHTML = items.map(function(r,i){
+    var v=vals[i]||0, pct=Math.abs(v)/mx*100, c=cFn(v);
+    var p=parseName(r.MTC_NAME);
+    var lb=p?p.vertical.toUpperCase()+' / '+p.sub:(r.MTC_NAME||'').substring(0,22);
+    var si=p?p.site:r.site||'';
+    return '<div class="bar-row">'+
+      '<div class="bar-label">'+lb+'<br/><span class="bar-site">'+si+'</span></div>'+
+      '<div class="bar-track">'+
+        '<div class="bar-fill" style="width:'+pct.toFixed(1)+'%;background:'+c+'"></div>'+
+        '<div class="bar-val">'+fFn(v)+'</div>'+
+      '</div></div>';
+  }).join('')||'<span style="color:var(--t4);font-size:.8rem">Sin datos</span>';
+}
+function renderCharts(rows){
+  var hd=rows.filter(function(r){return r.roas!=null&&(num(r.invest_usd)||0)>50;});
+  var tR=hd.slice().sort(function(a,b){return(num(b.roas)||0)-(num(a.roas)||0);}).slice(0,10);
+  var tN=hd.slice().sort(function(a,b){return(num(b.nmv_inc)||0)-(num(a.nmv_inc)||0);}).slice(0,10);
+  renderBar('chart-roas',tR,function(r){return num(r.roas)||0;},froas,rcol);
+  renderBar('chart-nmv',tN,function(r){return num(r.nmv_inc)||0;},fusd,function(v){return v>=0?'#00a650':'#f23d4f';});
+}
+
+// ── render site filters ────────────────────────────────────────────────────────
+function renderSiteFilters(rows){
+  var sites=[...new Set(rows.map(function(r){return r.site||'';}))].filter(Boolean).sort();
+  document.getElementById('siteF').innerHTML=sites.map(function(s){
+    return '<button class="fb" onclick="fSi(\''+s+'\',this)">'+s+'</button>';
+  }).join('');
+}
+
+// ── has performance data ────────────────────────────────────────────────────────
+function hasData(r){
+  return r.nmv_inc!=null && r.invest_usd!=null && (num(r.invest_usd)||0) > 0;
+}
+
+// ── render table ───────────────────────────────────────────────────────────────
+function renderTable(rows){
+  var withData    = rows.filter(hasData);
+  var withoutData = rows.filter(function(r){ return !hasData(r); });
+
+  // Main table — campaigns with data
+  document.getElementById('tbody').innerHTML = withData.length ? withData.map(function(r){
+    var rv=num(r.roas), rc_=rcol(rv), pc=perfClass(rv);
+    var nv=num(r.nmv_inc), nc=nv!=null&&nv>=0?'var(--g)':'var(--r)';
+    var roiv=num(r.roi), roic=roiv!=null&&roiv>=0?'var(--g)':'var(--r)';
+    var dv=num(r.disc_value), ds=dv&&dv>0?'<span style="color:var(--t2)">$'+dv.toLocaleString('es')+'</span>':dash(null);
+    return '<tr class="cr '+pc+'" data-status="'+(r.status||'')+'" data-site="'+(r.site||'')+'" data-id="'+(r.CAMPAIGN_ID||'')+'">' +
+      '<td style="min-width:260px">'+dispName(r)+'</td>'+
+      '<td>'+sbadge(r.status)+'</td>'+
+      '<td>'+ds+'</td>'+
+      '<td><span style="font-size:.75rem;color:var(--t3)">'+dash(fnum(r.budget_lc))+'</span></td>'+
+      '<td><span style="font-size:.85rem;font-weight:800;color:'+rc_+'">'+dash(froas(r.roas))+'</span></td>'+
+      '<td><span style="font-size:.82rem;font-weight:700;color:'+nc+'">'+dash(fusd(r.nmv_inc))+'</span></td>'+
+      '<td><span style="font-size:.78rem;color:var(--t2)">'+dash(fusd(r.invest_usd))+'</span></td>'+
+      '<td><span style="font-size:.8rem;font-weight:700;color:'+roic+'">'+dash(froi(r.roi))+'</span></td>'+
+      '<td><span style="font-size:.78rem;color:var(--t3)">'+dash(fusd(r.vc_inc))+'</span></td>'+
+      '<td><span style="font-size:.78rem;color:var(--t3)">'+dash(fusd(r.nmv_att))+'</span></td>'+
+      '<td><span style="font-size:.78rem;color:var(--t2)">'+dash(fnum(r.optins))+'</span></td>'+
+      '<td><span style="font-size:.78rem;color:var(--t3)">'+dash(fnum(r.orders))+'</span></td>'+
+      '<td><span style="font-size:.72rem;color:var(--t4)">'+(r.start_date||'').substring(0,10)+'</span></td>'+
+      '<td>'+daysHtml(r.end_date)+'</td>'+
+    '</tr>';
+  }).join('') :
+    '<tr><td colspan="14" style="text-align:center;padding:2.5rem;color:var(--t4)">Sin campa&ntilde;as con datos de performance</td></tr>';
+
+  // No-data section
+  if(withoutData.length){
+    document.getElementById('nd-section').style.display='';
+    document.getElementById('nd-count').textContent='— '+withoutData.length+' campa\xf1as';
+    document.getElementById('tbody-nd').innerHTML = withoutData.map(function(r){
+      var dv=num(r.disc_value), ds=dv&&dv>0?'$'+dv.toLocaleString('es'):'—';
+      return '<tr class="cr-nd" data-status="'+(r.status||'')+'" data-site="'+(r.site||'')+'" data-id="'+(r.CAMPAIGN_ID||'')+'" style="opacity:.55">'+
+        '<td style="padding:.5rem 1rem;border-bottom:1px solid #0c0c0c;min-width:260px">'+dispName(r)+'</td>'+
+        '<td style="padding:.5rem 1rem;border-bottom:1px solid #0c0c0c">'+sbadge(r.status)+'</td>'+
+        '<td style="padding:.5rem 1rem;border-bottom:1px solid #0c0c0c;font-size:.75rem;color:var(--t3)">'+ds+'</td>'+
+        '<td style="padding:.5rem 1rem;border-bottom:1px solid #0c0c0c;font-size:.75rem;color:var(--t4)">'+dash(fnum(r.budget_lc))+'</td>'+
+        '<td style="padding:.5rem 1rem;border-bottom:1px solid #0c0c0c;font-size:.72rem;color:var(--t4)">'+(r.start_date||'').substring(0,10)+'</td>'+
+        '<td style="padding:.5rem 1rem;border-bottom:1px solid #0c0c0c">'+daysHtml(r.end_date)+'</td>'+
+      '</tr>';
+    }).join('');
+  } else {
+    document.getElementById('nd-section').style.display='none';
+  }
+  updateCnt();
+}
+
+// ── no-data toggle ─────────────────────────────────────────────────────────────
+function toggleNoData(){
+  var body=document.getElementById('nd-body');
+  var arrow=document.getElementById('nd-arrow');
+  var open=body.classList.toggle('open');
+  arrow.classList.toggle('open',open);
+}
+
+// ── filters ────────────────────────────────────────────────────────────────────
+function rowMatches(r, q){
+  var stOk = S.curSt==='all' || r.dataset.status===S.curSt;
+  var siOk = S.curSi==='all' || r.dataset.site===S.curSi;
+  if(!stOk || !siOk) return false;
+  if(!q) return true;
+  // Match campaign name OR campaign ID (IE ID search)
+  var id   = (r.dataset.id||'').toLowerCase();
+  var text = r.textContent.toLowerCase();
+  return id.includes(q) || text.includes(q);
+}
+
+function applyFilters(){
+  var q=(document.getElementById('srch').value||'').toLowerCase().trim();
+  var nMain=0;
+
+  // Main table
+  document.querySelectorAll('#tbody .cr').forEach(function(r){
+    var ok=rowMatches(r,q);
+    r.classList.toggle('hidden',!ok);
+    if(ok) nMain++;
+  });
+
+  // No-data section — if search matches something there, auto-open it
+  var nNd=0;
+  document.querySelectorAll('#tbody-nd .cr-nd').forEach(function(r){
+    var ok=rowMatches(r,q);
+    r.style.display=ok?'':'none';
+    if(ok) nNd++;
+  });
+
+  // If search returns results in no-data section, auto-expand it
+  if(q && nNd>0){
+    document.getElementById('nd-body').classList.add('open');
+    document.getElementById('nd-arrow').classList.add('open');
+  }
+
+  document.getElementById('cnt').textContent=(nMain+nNd)+' campa\xf1as'+(q?' encontradas':'');
+}
+
+function updateCnt(){
+  var n=document.querySelectorAll('#tbody .cr:not(.hidden)').length;
+  var nd=document.querySelectorAll('#tbody-nd .cr-nd').length;
+  document.getElementById('cnt').textContent=n+' con datos'+(nd?' &bull; '+nd+' sin datos':'');
+}
+function fSt(s,el){
+  S.curSt=s;
+  document.querySelectorAll('.fb').forEach(function(b){
+    if(['Todas','Activas','Inactivas','Finalizadas'].some(function(x){return b.textContent.startsWith(x);}))
+      b.classList.remove('on');
+  });
+  el.classList.add('on'); applyFilters();
+}
+function fSi(s,el){
+  S.curSi=(S.curSi===s?'all':s);
+  document.querySelectorAll('#siteF .fb').forEach(function(b){b.classList.remove('on');});
+  if(S.curSi!=='all') el.classList.add('on');
+  applyFilters();
+}
+function doSearch(){ applyFilters(); }
+
+// ── sort ───────────────────────────────────────────────────────────────────────
+function sc(th,col){
+  if(S.sortC===col) S.sortD*=-1; else{S.sortC=col;S.sortD=-1;}
+  document.querySelectorAll('th').forEach(function(t){t.classList.remove('sd','sa');});
+  th.classList.add(S.sortD===-1?'sd':'sa');
+  var tb=document.getElementById('tbody');
+  Array.from(tb.querySelectorAll('tr')).sort(function(a,b){
+    var av=(a.cells[col]&&a.cells[col].textContent.trim())||'';
+    var bv=(b.cells[col]&&b.cells[col].textContent.trim())||'';
+    av=av.replace(/[$,MKx%↓↑]/g,'').trim(); bv=bv.replace(/[$,MKx%↓↑]/g,'').trim();
+    if(av==='—'||av==='') av=String(S.sortD===-1?-1e12:1e12);
+    if(bv==='—'||bv==='') bv=String(S.sortD===-1?-1e12:1e12);
+    var an=parseFloat(av),bn=parseFloat(bv);
+    if(!isNaN(an)&&!isNaN(bn)) return (bn-an)*S.sortD;
+    return av.localeCompare(bv)*S.sortD;
+  }).forEach(function(r){tb.appendChild(r);});
+}
+
+// ── render all ─────────────────────────────────────────────────────────────────
+function renderAll(data){
+  renderKPIs(data.rows);
+  renderCharts(data.rows);
+  renderSiteFilters(data.rows);
+  renderTable(data.rows);
+  applyFilters();
+  document.getElementById('nts').textContent='Actualizado: '+data.updated_at;
+}
+
+// ── data loading ───────────────────────────────────────────────────────────────
+function doRefresh(){
+  var btn=document.getElementById('rbtn');
+  var dot=document.getElementById('ndot');
+  btn.classList.add('loading');
+  dot.className='dot loading';
+  document.getElementById('nst').textContent='Actualizando...';
+
+  // Reload data.js via dynamic script tag (cache-bust)
+  var old=document.querySelector('script[data-dynamic]');
+  if(old) old.remove();
+  var sc=document.createElement('script');
+  sc.setAttribute('data-dynamic','1');
+  sc.src='data.js?t='+Date.now();
+  sc.onload=function(){
+    if(window.SCABE_DATA){
+      renderAll(window.SCABE_DATA);
+      btn.classList.remove('loading');
+      dot.className='dot live';
+      document.getElementById('nst').textContent='En vivo';
+      S.countdown=300;
+    }
+  };
+  sc.onerror=function(){
+    btn.classList.remove('loading');
+    dot.className='dot';
+    document.getElementById('nst').textContent='Error al cargar';
+  };
+  document.head.appendChild(sc);
+}
+
+// ── countdown ──────────────────────────────────────────────────────────────────
+function tick(){
+  S.countdown--;
+  if(S.countdown<=0){ doRefresh(); return; }
+  var m=Math.floor(S.countdown/60), s=S.countdown%60;
+  document.getElementById('ncd').textContent='Refresh en '+m+':'+(s<10?'0':'')+s;
+  setTimeout(tick,1000);
+}
+
+// ── init ───────────────────────────────────────────────────────────────────────
+if(window.SCABE_DATA && window.SCABE_DATA.rows && window.SCABE_DATA.rows.length){
+  renderAll(window.SCABE_DATA);
+  document.getElementById('ndot').className='dot live';
+  document.getElementById('nst').textContent='En vivo';
+} else {
+  document.getElementById('tbody').innerHTML=
+    '<tr><td colspan="14" style="text-align:center;padding:3rem;color:var(--t4)">'+
+    'Ejecut&aacute; <code style="color:var(--t2)">refresh.ps1</code> para cargar los datos</td></tr>';
+}
+
+setTimeout(tick,1000);
+</script>
+</body>
+</html>
