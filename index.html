@@ -137,6 +137,8 @@ tr.cr.perf-great td:first-child{border-left:2px solid var(--g);}
 tr.cr.perf-good  td:first-child{border-left:2px solid var(--y);}
 tr.cr.perf-marg  td:first-child{border-left:2px solid var(--o);}
 tr.cr.perf-bad   td:first-child{border-left:2px solid var(--r);}
+tr.cr.active-new td{background:#00a65007;}
+tr.cr.active-new td:first-child{border-left:2px solid var(--g);}
 tr.hidden{display:none;}
 
 /* ── MISC ── */
@@ -442,19 +444,30 @@ function renderSiteFilters(rows){
   }).join('');
 }
 
-// ── has performance data ────────────────────────────────────────────────────────
+// ── has performance data — activas siempre van al main table ───────────────────
 function hasData(r){
-  return r.nmv_inc!=null && r.invest_usd!=null && (num(r.invest_usd)||0) > 0;
+  var isActive = (r.status||'').toLowerCase() === 'active';
+  var hasPerf  = r.nmv_inc!=null && r.invest_usd!=null && (num(r.invest_usd)||0) > 0;
+  return hasPerf || isActive;
 }
 
 // ── render table ───────────────────────────────────────────────────────────────
 function renderTable(rows){
-  var withData    = rows.filter(hasData);
+  // Activas van siempre al main table (al fondo), el resto solo si tiene datos
+  var withData    = rows.filter(hasData).sort(function(a,b){
+    var aA = (a.status||'').toLowerCase()==='active' && !(num(a.invest_usd)>0);
+    var bA = (b.status||'').toLowerCase()==='active' && !(num(b.invest_usd)>0);
+    if(aA && !bA) return 1;   // activas sin datos van al fondo
+    if(!aA && bA) return -1;
+    return 0;
+  });
   var withoutData = rows.filter(function(r){ return !hasData(r); });
 
   // Main table — campaigns with data
   document.getElementById('tbody').innerHTML = withData.length ? withData.map(function(r){
     var rv=num(r.roas), rc_=rcol(rv), pc=perfClass(rv);
+    var isActiveNew=(r.status||'').toLowerCase()==='active'&&!(num(r.invest_usd)>0);
+    if(isActiveNew) pc='active-new';
     var nv=num(r.nmv_inc), nc=nv!=null&&nv>=0?'var(--g)':'var(--r)';
     var roiv=num(r.roi), roic=roiv!=null&&roiv>=0?'var(--g)':'var(--r)';
     var dv=num(r.disc_value), ds=dv&&dv>0?'<span style="color:var(--t2)">$'+dv.toLocaleString('es')+'</span>':dash(null);
