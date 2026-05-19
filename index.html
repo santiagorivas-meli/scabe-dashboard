@@ -607,27 +607,24 @@ function doRefresh(){
   dot.className='dot loading';
   document.getElementById('nst').textContent='Actualizando...';
 
-  // Reload data.js via dynamic script tag (cache-bust)
-  var old=document.querySelector('script[data-dynamic]');
-  if(old) old.remove();
-  var sc=document.createElement('script');
-  sc.setAttribute('data-dynamic','1');
-  sc.src='data.js?t='+Date.now();
-  sc.onload=function(){
-    if(window.SCABE_DATA){
-      renderAll(window.SCABE_DATA);
+  // fetch() con cache:no-store bypasea browser cache Y CDN de GitHub Pages
+  fetch('data.js?nocache='+Date.now(), {cache:'no-store', headers:{'Cache-Control':'no-cache, no-store', 'Pragma':'no-cache'}})
+    .then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.text(); })
+    .then(function(text){
+      eval(text); // re-ejecuta window.SCABE_DATA = {...}
+      if(window.SCABE_DATA){
+        renderAll(window.SCABE_DATA);
+        btn.classList.remove('loading');
+        dot.className='dot live';
+        document.getElementById('nst').textContent='En vivo';
+        S.countdown=900;
+      }
+    })
+    .catch(function(e){
       btn.classList.remove('loading');
-      dot.className='dot live';
-      document.getElementById('nst').textContent='En vivo';
-      S.countdown=300;
-    }
-  };
-  sc.onerror=function(){
-    btn.classList.remove('loading');
-    dot.className='dot';
-    document.getElementById('nst').textContent='Error al cargar';
-  };
-  document.head.appendChild(sc);
+      dot.className='dot';
+      document.getElementById('nst').textContent='Error: '+e.message;
+    });
 }
 
 // ── countdown ──────────────────────────────────────────────────────────────────
